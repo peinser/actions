@@ -7,4 +7,4 @@
 
 This repository contains the common Actions and config files for developing our GitHub Actions.
 
-- [semver](./semver) This action bumps the patch, minor or major version and returns the release versions and next development version.
+- [semver](./semver) This action bumps the patch, minor or major version and returns the current release version and next development version. The action is compliant with the [semver 2.x](./semver/semver) specification.
