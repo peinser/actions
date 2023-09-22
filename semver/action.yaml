@@ -1,0 +1,15 @@
+name: 'Update SemVer'
+description: 'Bump patch, minor or major SemVer.'
+
+inputs:
+  current-version:
+    description: Current SemVer of the application.
+    required: true
+  bump:
+    description: What version to bump; patch (default), minor, or major.
+    required: true
+outputs:
+  current:
+    description: The SemVer of the application that will be released.
+  next:
+    description: The next SemVer of the application that will be released.
