@@ -101,7 +101,9 @@ runs:
           exit 1
         fi
 
-        echo "::add-mask::${secret_value}"
+        while IFS= read -r line; do
+          [ -n "${line}" ] && echo "::add-mask::${line}"
+        done <<< "${secret_value}"
 
         {
           printf '%s<<__PROTON_PASS_SECRET__\n' "${output_name}"
