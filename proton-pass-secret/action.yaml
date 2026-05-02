@@ -101,17 +101,12 @@ runs:
           exit 1
         fi
 
-        while IFS= read -r line; do
-          [ -n "${line}" ] && echo "::add-mask::${line}"
-        done <<< "${secret_value}"
+        encoded_value="$(printf '%s' "${secret_value}" | base64 -w 0)"
+        echo "::add-mask::${encoded_value}"
 
         {
-          printf '%s<<__PROTON_PASS_SECRET__\n' "${output_name}"
-          printf '%s\n' "${secret_value}"
-          printf '__PROTON_PASS_SECRET__\n'
-          printf 'secret<<__PROTON_PASS_SECRET_DEFAULT__\n'
-          printf '%s\n' "${secret_value}"
-          printf '__PROTON_PASS_SECRET_DEFAULT__\n'
+          printf '%s=%s\n' "${output_name}" "${encoded_value}"
+          printf 'secret=%s\n' "${encoded_value}"
         } >> "${GITHUB_OUTPUT}"
 
         if [ "${do_logout}" = "true" ]; then
