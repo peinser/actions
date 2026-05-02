@@ -1,0 +1,53 @@
+name: Validate actions repository
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lint workflows
+        uses: rhysd/actionlint@v1
+
+      - name: Validate VERSION format
+        run: |
+          set -euo pipefail
+
+          if [ ! -f VERSION ]; then
+            echo "VERSION file is missing at repository root." >&2
+            exit 1
+          fi
+
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be SemVer MAJOR.MINOR.PATCH, got '${version}'." >&2
+            exit 1
+          fi
+
+      - name: Validate action documentation
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r action_file; do
+            action_dir="$(dirname "${action_file}")"
+            if [ ! -f "${action_dir}/README.md" ]; then
+              echo "Missing README.md for action in ${action_dir}" >&2
+              exit 1
+            fi
+          done < <(find . -mindepth 2 -maxdepth 2 -name action.yaml -type f | sort)
+
+      - name: Validate examples avoid @main
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number -E 'uses:\s+[^[:space:]]+@main' README.md */README.md; then
+            echo "Found @main in docs. Use @vMAJOR tags instead." >&2
+            exit 1
+          fi

@@ -56,11 +56,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install pass-cli
-        uses: peinser/actions/proton-pass-install@main
+        uses: peinser/actions/proton-pass-install@v1
 
       - name: Resolve API token
         id: proton_secret
-        uses: peinser/actions/proton-pass-secret@main
+        uses: peinser/actions/proton-pass-secret@v1
         with:
           personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
           secret-reference: pass://CI Vault/Service API/password

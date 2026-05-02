@@ -14,7 +14,7 @@ This composite action installs the Proton Pass CLI (`pass-cli`) on the current G
 
 ```yaml
 - name: Install pass-cli
-  uses: peinser/actions/proton-pass-install@main
+  uses: peinser/actions/proton-pass-install@v1
 
 - name: Check version
   run: pass-cli --version

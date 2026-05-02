@@ -25,7 +25,7 @@ Examples:
 1. Merge changes into `main`.
 2. Create a release tag `vMAJOR.MINOR.PATCH` from the target commit.
 3. Push the release tag.
-4. The `update-major-action-tag` workflow updates the corresponding `vMAJOR` tag.
+4. The `update-major-action-tag` workflow verifies `VERSION` matches the tag and updates the corresponding `vMAJOR` tag.
 
 Example:
 
@@ -35,6 +35,13 @@ git push origin v1.0.0
 ```
 
 After pushing `v1.0.0`, the workflow updates `v1` to the same commit.
+
+## CI checks
+
+- `.github/workflows/validate-actions.yml` enforces:
+  - `VERSION` uses `MAJOR.MINOR.PATCH` format.
+  - Every action directory with `action.yaml` also has `README.md`.
+  - Documentation examples do not use `@main`.
 
 ## Initial setup required
 
