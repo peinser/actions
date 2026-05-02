@@ -8,17 +8,17 @@ inputs:
   secret-reference:
     description: Secret reference in pass://vault/item/field format.
     required: false
-  vault_share_id:
+  vault-share-id:
     description: Vault share ID to use when secret-reference is not provided.
     required: false
-  item_id:
-    description: Item ID to use with vault_share_id when secret-reference is not provided.
+  item-id:
+    description: Item ID to use with vault-share-id when secret-reference is not provided.
     required: false
-  item_title:
-    description: Item title to use with vault_share_id when secret-reference is not provided.
+  item-title:
+    description: Item title to use with vault-share-id when secret-reference is not provided.
     required: false
   field:
-    description: Field name to resolve when using vault_share_id with item_id or item_title.
+    description: Field name to resolve when using vault-share-id with item-id or item-title.
     required: false
     default: note
   logout:
@@ -46,9 +46,9 @@ runs:
 
         token="${{ inputs.personal-access-token }}"
         secret_reference_input="${{ inputs.secret-reference }}"
-        vault_share_id="${{ inputs.vault_share_id }}"
-        item_id="${{ inputs.item_id }}"
-        item_title="${{ inputs.item_title }}"
+        vault_share_id="${{ inputs.vault-share-id }}"
+        item_id="${{ inputs.item-id }}"
+        item_title="${{ inputs.item-title }}"
         field_name="${{ inputs.field }}"
         do_logout="${{ inputs.logout }}"
 
@@ -58,17 +58,17 @@ runs:
           secret_value="$(SECRET_REFERENCE="${secret_reference_input}" pass-cli run -- bash -c 'printf "%s" "${SECRET_REFERENCE}"')"
         else
           if [ -z "${vault_share_id}" ]; then
-            echo "Either secret-reference or vault_share_id must be provided." >&2
+            echo "Either secret-reference or vault-share-id must be provided." >&2
             exit 1
           fi
 
           if [ -n "${item_id}" ] && [ -n "${item_title}" ]; then
-            echo "Provide either item_id or item_title, not both." >&2
+            echo "Provide either item-id or item-title, not both." >&2
             exit 1
           fi
 
           if [ -z "${item_id}" ] && [ -z "${item_title}" ]; then
-            echo "When using vault_share_id, provide item_id or item_title." >&2
+            echo "When using vault-share-id, provide item-id or item-title." >&2
             exit 1
           fi
 
