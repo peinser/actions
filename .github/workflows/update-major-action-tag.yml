@@ -64,25 +64,34 @@ jobs:
 
             const sha = releaseRef.data.object.sha;
 
+            const refName = `tags/${majorTag}`;
+            let majorRefExists = true;
+
             try {
+              await github.rest.git.getRef({ owner, repo, ref: refName });
+            } catch (error) {
+              if (error.status === 404) {
+                majorRefExists = false;
+              } else {
+                throw error;
+              }
+            }
+
+            if (majorRefExists) {
               await github.rest.git.updateRef({
                 owner,
                 repo,
-                ref: `tags/${majorTag}`,
+                ref: refName,
                 sha,
                 force: true
               });
               core.info(`Updated ${majorTag} -> ${sha}`);
-            } catch (error) {
-              if (error.status === 404) {
-                await github.rest.git.createRef({
-                  owner,
-                  repo,
-                  ref: `refs/tags/${majorTag}`,
-                  sha
-                });
-                core.info(`Created ${majorTag} -> ${sha}`);
-              } else {
-                throw error;
-              }
+            } else {
+              await github.rest.git.createRef({
+                owner,
+                repo,
+                ref: `refs/${refName}`,
+                sha
+              });
+              core.info(`Created ${majorTag} -> ${sha}`);
             }
