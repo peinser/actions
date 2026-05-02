@@ -57,11 +57,9 @@ runs:
         do_logout="${{ inputs.logout }}"
 
         secret_reference=""
-        resolve_mode="reference"
         if [ -n "${secret_reference_input}" ]; then
           secret_reference="${secret_reference_input}"
         else
-          resolve_mode="share-item"
           if [ -z "${vault_share_id}" ]; then
             echo "Either secret-reference or vault_share_id must be provided." >&2
             exit 1
@@ -87,15 +85,7 @@ runs:
 
         PROTON_PASS_PERSONAL_ACCESS_TOKEN="${token}" pass-cli login
 
-        if [ "${resolve_mode}" = "reference" ]; then
-          secret_value="$(SECRET_REFERENCE="${secret_reference}" pass-cli run -- bash -c 'printf "%s" "${SECRET_REFERENCE}"')"
-        else
-          if [ -n "${item_id}" ]; then
-            secret_value="$(pass-cli item view --share-id "${vault_share_id}" --item-id "${item_id}" --field "${field_name}")"
-          else
-            secret_value="$(pass-cli item view --share-id "${vault_share_id}" --item-title "${item_title}" --field "${field_name}")"
-          fi
-        fi
+        secret_value="$(SECRET_REFERENCE="${secret_reference}" pass-cli run -- bash -c 'printf "%s" "${SECRET_REFERENCE}"')"
 
         if [ -z "${secret_value}" ]; then
           echo "Resolved secret is empty. Confirm the reference and PAT permissions." >&2
