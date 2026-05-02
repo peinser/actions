@@ -1,0 +1,35 @@
+name: Install Proton Pass CLI
+description: Install the Proton Pass CLI (pass-cli) on the runner.
+
+inputs:
+  force-install:
+    description: Install pass-cli even if it is already available in PATH.
+    required: false
+    default: "false"
+
+outputs:
+  pass-cli-version:
+    description: Installed pass-cli version.
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        force_install="${{ inputs.force-install }}"
+        if command -v pass-cli >/dev/null 2>&1 && [ "${force_install}" != "true" ]; then
+          echo "pass-cli is already installed."
+        else
+          curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
+        fi
+
+        if command -v pass-cli >/dev/null 2>&1; then
+          pass_cli_path="$(command -v pass-cli)"
+          echo "$(dirname "${pass_cli_path}")" >> "${GITHUB_PATH}"
+        fi
+
+        pass_cli_version="$(pass-cli --version | tr -d '\n')"
+        echo "pass-cli-version=${pass_cli_version}" >> "${GITHUB_OUTPUT}"

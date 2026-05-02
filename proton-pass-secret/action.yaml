@@ -1,0 +1,64 @@
+name: Get Proton Pass Secret
+description: Log in to Proton Pass with a PAT and resolve a secret reference.
+
+inputs:
+  personal-access-token:
+    description: Proton Pass personal access token used for login.
+    required: true
+  secret-reference:
+    description: Secret reference in pass://vault/item/field format.
+    required: true
+  output-name:
+    description: Output key name used to expose the resolved secret value.
+    required: false
+    default: secret
+  logout:
+    description: Whether to log out after resolving the secret.
+    required: false
+    default: "true"
+
+outputs:
+  secret:
+    description: Resolved secret value.
+
+runs:
+  using: composite
+  steps:
+    - id: get-secret
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if ! command -v pass-cli >/dev/null 2>&1; then
+          echo "pass-cli is not available in PATH. Ensure `pass-cli` is installed and in PATH.Run the proton-pass-install action, if necessary." >&2
+          exit 1
+        fi
+
+        token="${{ inputs.personal-access-token }}"
+        secret_reference="${{ inputs.secret-reference }}"
+        output_name="${{ inputs.output-name }}"
+        do_logout="${{ inputs.logout }}"
+
+        PROTON_PASS_PERSONAL_ACCESS_TOKEN="${token}" pass-cli login
+
+        secret_value="$(SECRET_REFERENCE="${secret_reference}" pass-cli run -- bash -c 'printf "%s" "${SECRET_REFERENCE}"')"
+
+        if [ -z "${secret_value}" ]; then
+          echo "Resolved secret is empty. Confirm the reference and PAT permissions." >&2
+          exit 1
+        fi
+
+        echo "::add-mask::${secret_value}"
+
+        {
+          printf '%s<<__PROTON_PASS_SECRET__\n' "${output_name}"
+          printf '%s\n' "${secret_value}"
+          printf '__PROTON_PASS_SECRET__\n'
+          printf 'secret<<__PROTON_PASS_SECRET_DEFAULT__\n'
+          printf '%s\n' "${secret_value}"
+          printf '__PROTON_PASS_SECRET_DEFAULT__\n'
+        } >> "${GITHUB_OUTPUT}"
+
+        if [ "${do_logout}" = "true" ]; then
+          pass-cli logout >/dev/null 2>&1 || true
+        fi
