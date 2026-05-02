@@ -7,7 +7,20 @@ inputs:
     required: true
   secret-reference:
     description: Secret reference in pass://vault/item/field format.
-    required: true
+    required: false
+  vault_share_id:
+    description: Vault share ID to use when secret-reference is not provided.
+    required: false
+  item_id:
+    description: Item ID to use with vault_share_id when secret-reference is not provided.
+    required: false
+  item_title:
+    description: Item title to use with vault_share_id when secret-reference is not provided.
+    required: false
+  field:
+    description: Field name to resolve when using vault_share_id with item_id or item_title.
+    required: false
+    default: note
   output-name:
     description: Output key name used to expose the resolved secret value.
     required: false
@@ -30,14 +43,45 @@ runs:
         set -euo pipefail
 
         if ! command -v pass-cli >/dev/null 2>&1; then
-          echo "pass-cli is not available in PATH. Ensure `pass-cli` is installed and in PATH.Run the proton-pass-install action, if necessary." >&2
+          echo "pass-cli is not available in PATH. Ensure pass-cli is installed, or run the proton-pass-install action first." >&2
           exit 1
         fi
 
         token="${{ inputs.personal-access-token }}"
-        secret_reference="${{ inputs.secret-reference }}"
+        secret_reference_input="${{ inputs.secret-reference }}"
+        vault_share_id="${{ inputs.vault_share_id }}"
+        item_id="${{ inputs.item_id }}"
+        item_title="${{ inputs.item_title }}"
+        field_name="${{ inputs.field }}"
         output_name="${{ inputs.output-name }}"
         do_logout="${{ inputs.logout }}"
+
+        secret_reference=""
+        if [ -n "${secret_reference_input}" ]; then
+          secret_reference="${secret_reference_input}"
+        else
+          if [ -z "${vault_share_id}" ]; then
+            echo "Either secret-reference or vault_share_id must be provided." >&2
+            exit 1
+          fi
+
+          if [ -n "${item_id}" ] && [ -n "${item_title}" ]; then
+            echo "Provide either item_id or item_title, not both." >&2
+            exit 1
+          fi
+
+          if [ -z "${item_id}" ] && [ -z "${item_title}" ]; then
+            echo "When using vault_share_id, provide item_id or item_title." >&2
+            exit 1
+          fi
+
+          item_identifier="${item_id}"
+          if [ -z "${item_identifier}" ]; then
+            item_identifier="${item_title}"
+          fi
+
+          secret_reference="pass://${vault_share_id}/${item_identifier}/${field_name}"
+        fi
 
         PROTON_PASS_PERSONAL_ACCESS_TOKEN="${token}" pass-cli login
 

@@ -1,11 +1,13 @@
 # Get Proton Pass Secret Action
 
-This composite action logs in to Proton Pass with a Personal Access Token (PAT) and resolves one secret reference (`pass://vault/item/field`) into a GitHub Actions output.
+This composite action logs in to Proton Pass with a Personal Access Token (PAT) and resolves one secret into a GitHub Actions output.
 
 ## What this action does
 
 1. Uses `PROTON_PASS_PERSONAL_ACCESS_TOKEN` to authenticate via `pass-cli login`.
-2. Resolves the provided `pass://...` secret reference using `pass-cli run`.
+2. Resolves either:
+   - a provided `pass://...` secret reference, or
+   - a generated reference from `vault_share_id` + (`item_id` or `item_title`) + `field`.
 3. Masks the resolved value in workflow logs.
 4. Exposes the resolved value as an output.
 5. Optionally logs out (`logout: true` by default).
@@ -13,9 +15,18 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 ## Inputs
 
 - `personal-access-token` (required): Proton Pass PAT string.
-- `secret-reference` (required): secret reference in `pass://vault/item/field` format.
+- `secret-reference` (optional): secret reference in `pass://vault/item/field` format.
+- `vault_share_id` (optional): vault Share ID when you do not pass `secret-reference`.
+- `item_id` (optional): item ID used with `vault_share_id`.
+- `item_title` (optional): item title used with `vault_share_id`.
+- `field` (optional, default: `note`): field name used with `vault_share_id` + item selector.
 - `output-name` (optional, default: `secret`): output key for the resolved secret.
 - `logout` (optional, default: `true`): whether to run `pass-cli logout` when done.
+
+Input rules:
+
+- Either `secret-reference` OR `vault_share_id` must be provided.
+- When using `vault_share_id`, provide exactly one of `item_id` or `item_title`.
 
 ## Outputs
 
@@ -28,7 +39,7 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 - `pass-cli` is installed and available in `PATH` before this action runs.
   - Recommended: use `peinser/actions/proton-pass-install` first.
 - The PAT grants access to the target vault/item/field.
-- The secret reference is valid and complete (`pass://vault/item/field`).
+- The provided secret reference is valid (`pass://vault/item/field`), or `vault_share_id` + item selector resolves to an existing item.
 - This action currently treats an empty resolved value as an error.
 
 ## How to create and configure a PAT for CI
@@ -72,6 +83,34 @@ jobs:
         run: |
           test -n "${SERVICE_API_TOKEN}"
           echo "Secret was resolved and injected into env"
+```
+
+Using `vault_share_id` + `item_id`:
+
+```yaml
+- name: Resolve secret by share and item ID
+  id: proton_secret
+  uses: peinser/actions/proton-pass-secret@v1
+  with:
+    personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
+    output-name: kubeconfig
+    vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
+    item_id: meepmeep
+    field: note
+```
+
+Using `vault_share_id` + `item_title`:
+
+```yaml
+- name: Resolve secret by share and item title
+  id: proton_secret
+  uses: peinser/actions/proton-pass-secret@v1
+  with:
+    personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
+    output-name: kubeconfig
+    vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
+    item_title: KUBECONFIG
+    field: note
 ```
 
 ## Security notes
