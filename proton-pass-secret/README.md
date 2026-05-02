@@ -16,16 +16,16 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 
 - `personal-access-token` (required): Proton Pass PAT string.
 - `secret-reference` (optional): secret reference in `pass://vault/item/field` format.
-- `vault_share_id` (optional): vault Share ID when you do not pass `secret-reference`.
-- `item_id` (optional): item ID used with `vault_share_id`.
-- `item_title` (optional): item title used with `vault_share_id`.
+- `vault-share-id` (optional): vault Share ID when you do not pass `secret-reference`.
+- `item-id` (optional): item ID used with `vault-share-id`.
+- `item-title` (optional): item title used with `vault-share-id`.
 - `field` (optional, default: `note`): field name to extract from the item JSON. See [Supported fields](#supported-fields).
 - `logout` (optional, default: `true`): whether to run `pass-cli logout` when done.
 
 Input rules:
 
-- Either `secret-reference` OR `vault_share_id` must be provided.
-- When using `vault_share_id`, provide exactly one of `item_id` or `item_title`.
+- Either `secret-reference` OR `vault-share-id` must be provided.
+- When using `vault-share-id`, provide exactly one of `item-id` or `item-title`.
 
 ## Supported fields
 
@@ -54,8 +54,8 @@ All output values are base64-encoded to safely pass multiline secrets (such as k
   - Recommended: use `peinser/actions/proton-pass-install` first.
   - `jq` is preinstalled on GitHub hosted runners.
 - The PAT grants access to the target vault/item/field.
-- When using `vault_share_id`, the Share ID must belong to the PAT session (each user/PAT gets its own Share ID for a vault).
-- The provided secret reference is valid (`pass://vault/item/field`), or `vault_share_id` + item selector resolves to an existing item.
+- When using `vault-share-id`, the Share ID must belong to the PAT session (each user/PAT gets its own Share ID for a vault).
+- The provided secret reference is valid (`pass://vault/item/field`), or `vault-share-id` + item selector resolves to an existing item.
 - This action currently treats an empty resolved value as an error.
 
 ## How to create and configure a PAT for CI
@@ -110,7 +110,7 @@ jobs:
           echo "Secret was resolved and decoded"
 ```
 
-Using `vault_share_id` + `item_id`:
+Using `vault-share-id` + `item-id`:
 
 ```yaml
 - name: Resolve secret by share and item ID
@@ -118,12 +118,12 @@ Using `vault_share_id` + `item_id`:
   uses: peinser/actions/proton-pass-secret@v1
   with:
     personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
-    vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
-    item_id: meepmeep
+    vault-share-id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
+    item-id: meepmeep
     field: note
 ```
 
-Using `vault_share_id` + `item_title`:
+Using `vault-share-id` + `item-title`:
 
 ```yaml
 - name: Resolve secret by share and item title
@@ -131,8 +131,8 @@ Using `vault_share_id` + `item_title`:
   uses: peinser/actions/proton-pass-secret@v1
   with:
     personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
-    vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
-    item_title: KUBECONFIG
+    vault-share-id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
+    item-title: KUBECONFIG
     field: note
 
 - name: Deploy with resolved kubeconfig

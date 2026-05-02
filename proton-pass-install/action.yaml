@@ -1,35 +1,107 @@
-name: Install Proton Pass CLI
-description: Install the Proton Pass CLI (pass-cli) on the runner.
+name: Get Proton Pass Secret
+description: Log in to Proton Pass with a PAT and resolve a secret reference.
 
 inputs:
-  force-install:
-    description: Install pass-cli even if it is already available in PATH.
+  personal-access-token:
+    description: Proton Pass personal access token used for login.
+    required: true
+  secret-reference:
+    description: Secret reference in pass://vault/item/field format.
     required: false
-    default: "false"
+  vault-share-id:
+    description: Vault share ID to use when secret-reference is not provided.
+    required: false
+  item-id:
+    description: Item ID to use with vault-share-id when secret-reference is not provided.
+    required: false
+  item-title:
+    description: Item title to use with vault-share-id when secret-reference is not provided.
+    required: false
+  field:
+    description: Field name to resolve when using vault-share-id with item-id or item-title.
+    required: false
+    default: note
+  logout:
+    description: Whether to log out after resolving the secret.
+    required: false
+    default: "true"
 
 outputs:
-  pass-cli-version:
-    description: Installed pass-cli version.
+  secret:
+    description: Resolved secret value, base64-encoded.
+    value: ${{ steps.get-secret.outputs.secret }}
 
 runs:
   using: composite
   steps:
-    - id: install
+    - id: get-secret
       shell: bash
       run: |
         set -euo pipefail
 
-        force_install="${{ inputs.force-install }}"
-        if command -v pass-cli >/dev/null 2>&1 && [ "${force_install}" != "true" ]; then
-          echo "pass-cli is already installed."
+        if ! command -v pass-cli >/dev/null 2>&1; then
+          echo "pass-cli is not available in PATH. Ensure pass-cli is installed, or run the proton-pass-install action first." >&2
+          exit 1
+        fi
+
+        token="${{ inputs.personal-access-token }}"
+        secret_reference_input="${{ inputs.secret-reference }}"
+        vault_share_id="${{ inputs.vault-share-id }}"
+        item_id="${{ inputs.item-id }}"
+        item_title="${{ inputs.item-title }}"
+        field_name="${{ inputs.field }}"
+        do_logout="${{ inputs.logout }}"
+
+        PROTON_PASS_PERSONAL_ACCESS_TOKEN="${token}" pass-cli login
+
+        if [ -n "${secret_reference_input}" ]; then
+          secret_value="$(SECRET_REFERENCE="${secret_reference_input}" pass-cli run -- bash -c 'printf "%s" "${SECRET_REFERENCE}"')"
         else
-          curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
+          if [ -z "${vault_share_id}" ]; then
+            echo "Either secret-reference or vault-share-id must be provided." >&2
+            exit 1
+          fi
+
+          if [ -n "${item_id}" ] && [ -n "${item_title}" ]; then
+            echo "Provide either item-id or item-title, not both." >&2
+            exit 1
+          fi
+
+          if [ -z "${item_id}" ] && [ -z "${item_title}" ]; then
+            echo "When using vault-share-id, provide item-id or item-title." >&2
+            exit 1
+          fi
+
+          view_args=(--share-id "${vault_share_id}" --output json)
+          if [ -n "${item_id}" ]; then
+            view_args+=(--item-id "${item_id}")
+          else
+            view_args+=(--item-title "${item_title}")
+          fi
+
+          item_json="$(pass-cli item view "${view_args[@]}")"
+
+          case "${field_name}" in
+            note)
+              secret_value="$(printf '%s' "${item_json}" | jq -r '.item.content.note // empty')"
+              ;;
+            *)
+              echo "Unsupported field type: ${field_name}. Supported fields: note" >&2
+              exit 1
+              ;;
+          esac
         fi
 
-        if command -v pass-cli >/dev/null 2>&1; then
-          pass_cli_path="$(command -v pass-cli)"
-          echo "$(dirname "${pass_cli_path}")" >> "${GITHUB_PATH}"
+        if [ -z "${secret_value}" ]; then
+          echo "Resolved secret is empty. Confirm the reference and PAT permissions." >&2
+          exit 1
         fi
 
-        pass_cli_version="$(pass-cli --version | tr -d '\n')"
-        echo "pass-cli-version=${pass_cli_version}" >> "${GITHUB_OUTPUT}"
+        encoded_value="$(printf '%s' "${secret_value}" | base64 -w 0)"
+        echo "::add-mask::${encoded_value}"
+
+        printf 'secret=%s\n' "${encoded_value}" >> "${GITHUB_OUTPUT}"
+
+        if [ "${do_logout}" = "true" ]; then
+          pass-cli logout >/dev/null 2>&1 || true
+        fi
