@@ -8,8 +8,8 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 2. Resolves either:
    - a provided `pass://...` secret reference via `pass-cli run`, or
    - an item field via `pass-cli item view --share-id` + (`--item-id` or `--item-title`).
-3. Masks the resolved value in workflow logs (each line masked individually for multiline secrets).
-4. Base64-encodes the value and exposes it as an output.
+3. Base64-encodes the resolved value and exposes it as the `secret` output.
+4. Masks the encoded value in workflow logs.
 5. Optionally logs out (`logout: true` by default).
 
 ## Inputs
@@ -20,7 +20,6 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 - `item_id` (optional): item ID used with `vault_share_id`.
 - `item_title` (optional): item title used with `vault_share_id`.
 - `field` (optional, default: `note`): field name to extract from the item JSON. See [Supported fields](#supported-fields).
-- `output-name` (optional, default: `secret`): output key for the resolved secret.
 - `logout` (optional, default: `true`): whether to run `pass-cli logout` when done.
 
 Input rules:
@@ -41,12 +40,11 @@ Unsupported field values cause the action to fail with an explicit error. To add
 ## Outputs
 
 - `secret`: resolved secret value, **base64-encoded**.
-- `<output-name>`: same resolved secret value, **base64-encoded**, published under your chosen output name.
 
-All output values are base64-encoded to safely pass multiline secrets (such as kubeconfigs or certificates) through `GITHUB_OUTPUT`. Decode them in your workflow:
+All output values are base64-encoded to safely pass multiline secrets (such as kubeconfigs or certificates) through `GITHUB_OUTPUT`. Decode in your workflow:
 
 ```yaml
-- run: echo "${{ steps.proton_secret.outputs.secret }}" | base64 -d > secret.txt
+- run: echo "${{ steps.<step-id>.outputs.secret }}" | base64 -d > secret.txt
 ```
 
 ## Requirements and assumptions
@@ -104,11 +102,10 @@ jobs:
         with:
           personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
           secret-reference: pass://CI Vault/Service API/password
-          output-name: service-api-token
 
       - name: Use resolved secret
         run: |
-          SERVICE_API_TOKEN="$(echo "${{ steps.proton_secret.outputs.service-api-token }}" | base64 -d)"
+          SERVICE_API_TOKEN="$(echo "${{ steps.proton_secret.outputs.secret }}" | base64 -d)"
           test -n "${SERVICE_API_TOKEN}"
           echo "Secret was resolved and decoded"
 ```
@@ -121,7 +118,6 @@ Using `vault_share_id` + `item_id`:
   uses: peinser/actions/proton-pass-secret@v1
   with:
     personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
-    output-name: kubeconfig
     vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
     item_id: meepmeep
     field: note
@@ -135,14 +131,13 @@ Using `vault_share_id` + `item_title`:
   uses: peinser/actions/proton-pass-secret@v1
   with:
     personal-access-token: ${{ secrets.PROTON_PASS_PAT }}
-    output-name: kubeconfig
     vault_share_id: kxMSS9Ok_rQjUdXujFCR2w5w43oEtH9bGpq5gvMry_buisSpwbzfdiWdIrJJ7_fbf8a1xFjFzXcku1VmTPSfIQ==
     item_title: KUBECONFIG
     field: note
 
 - name: Deploy with resolved kubeconfig
   run: |
-    echo "${{ steps.proton_secret.outputs.kubeconfig }}" | base64 -d > kubeconfig
+    echo "${{ steps.proton_secret.outputs.secret }}" | base64 -d > kubeconfig
     export KUBECONFIG=$(pwd)/kubeconfig
     kubectl get nodes
 ```

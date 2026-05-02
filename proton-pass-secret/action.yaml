@@ -21,10 +21,6 @@ inputs:
     description: Field name to resolve when using vault_share_id with item_id or item_title.
     required: false
     default: note
-  output-name:
-    description: Output key name used to expose the resolved secret value.
-    required: false
-    default: secret
   logout:
     description: Whether to log out after resolving the secret.
     required: false
@@ -32,7 +28,8 @@ inputs:
 
 outputs:
   secret:
-    description: Resolved secret value.
+    description: Resolved secret value, base64-encoded.
+    value: ${{ steps.get-secret.outputs.secret }}
 
 runs:
   using: composite
@@ -53,7 +50,6 @@ runs:
         item_id="${{ inputs.item_id }}"
         item_title="${{ inputs.item_title }}"
         field_name="${{ inputs.field }}"
-        output_name="${{ inputs.output-name }}"
         do_logout="${{ inputs.logout }}"
 
         PROTON_PASS_PERSONAL_ACCESS_TOKEN="${token}" pass-cli login
@@ -104,10 +100,7 @@ runs:
         encoded_value="$(printf '%s' "${secret_value}" | base64 -w 0)"
         echo "::add-mask::${encoded_value}"
 
-        {
-          printf '%s=%s\n' "${output_name}" "${encoded_value}"
-          printf 'secret=%s\n' "${encoded_value}"
-        } >> "${GITHUB_OUTPUT}"
+        printf 'secret=%s\n' "${encoded_value}" >> "${GITHUB_OUTPUT}"
 
         if [ "${do_logout}" = "true" ]; then
           pass-cli logout >/dev/null 2>&1 || true
