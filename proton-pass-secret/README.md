@@ -7,7 +7,7 @@ This composite action logs in to Proton Pass with a Personal Access Token (PAT) 
 1. Uses `PROTON_PASS_PERSONAL_ACCESS_TOKEN` to authenticate via `pass-cli login`.
 2. Resolves either:
    - a provided `pass://...` secret reference, or
-   - a generated reference from `vault_share_id` + (`item_id` or `item_title`) + `field`.
+   - an item field via `--share-id` + (`--item-id` or `--item-title`) + `--field`.
 3. Masks the resolved value in workflow logs.
 4. Exposes the resolved value as an output.
 5. Optionally logs out (`logout: true` by default).
