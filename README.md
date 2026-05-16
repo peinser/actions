@@ -10,6 +10,7 @@ This repository contains shared GitHub Actions used throughout the organisation.
 - [semver](./semver): Bumps patch/minor/major versions and returns current and next versions, compliant with [SemVer 2.x](./semver/semver).
 - [proton-pass-install](./proton-pass-install): Installs Proton Pass CLI (`pass-cli`) on the runner.
 - [proton-pass-secret](./proton-pass-secret): Logs in with a Proton Pass PAT and resolves one `pass://` secret reference to workflow output.
+- [esp-remoteid-build](./esp-remoteid-build): Builds a custom ESP RemoteID firmware based on the provided inputs.
 
 ## Versioning policy
 
